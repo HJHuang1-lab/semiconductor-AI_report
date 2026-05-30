@@ -629,17 +629,47 @@ def add_standard_slide(s_data):
         p_c_body.font.color.rgb = COLOR_TEXT
         p_c_body.line_spacing = 1.35
 
-# Process slides based on title matching
+# Process slides based on title matching with intelligent module image selection
 for idx, s_data in enumerate(data["slides"]):
-    # Match specific index/topics to our 3 high-quality generated images
-    if "自主製程控制" in s_data["title"] or "APC" in s_data["title"] or idx == 1:
-        add_split_slide_with_image(s_data, img_chamber_default)
-    elif "缺陷分析" in s_data["title"] or "根因診斷" in s_data["title"] or idx == 2:
-        add_split_slide_with_image(s_data, img_defect_default)
-    elif "Agent 良率" in s_data["title"] or "治理" in s_data["title"] or idx == 4:
-        add_split_slide_with_image(s_data, img_yield_default)
+    title_text = s_data.get("title", "")
+    subtitle_text = s_data.get("subtitle", "")
+    full_text = (title_text + " " + subtitle_text).lower()
+    
+    matched_img = None
+    
+    # 8 Major Modules Matching
+    if any(k in full_text for k in ["diff", "擴散", "diffusion", "高溫", "爐管", "furnace"]):
+        matched_img = os.path.join(assets_dir, "diff.png")
+    elif any(k in full_text for k in ["imp", "植入", "implantation", "離子", "dopant", "注入"]):
+        matched_img = os.path.join(assets_dir, "imp.png")
+    elif any(k in full_text for k in ["pvd", "濺鍍", "sputter", "物理氣相"]):
+        matched_img = os.path.join(assets_dir, "tf_pvd.png")
+    elif any(k in full_text for k in ["cvd", "化學氣相", "deposition", "pe-cvd", "pecvd", "ald"]):
+        matched_img = os.path.join(assets_dir, "tf_cvd.png")
+    elif any(k in full_text for k in ["litho", "光刻", "微影", "曝光", "photolithography", "euv", "scanner"]):
+        matched_img = os.path.join(assets_dir, "litho.png")
+    elif any(k in full_text for k in ["dry etch", "乾式蝕刻", "蝕刻", "etching", "plasma", "電漿"]):
+        matched_img = os.path.join(assets_dir, "dry_etch.png")
+    elif any(k in full_text for k in ["cmp", "平坦化", "planarization", "研磨", "polishing"]):
+        matched_img = os.path.join(assets_dir, "cmp.png")
+    elif any(k in full_text for k in ["wet etch", "濕式蝕刻", "清洗", "wet clean", "rca", "cleaning", "酸槽"]):
+        matched_img = os.path.join(assets_dir, "wet_etch.png")
+    elif any(k in full_text for k in ["hbm", "記憶體堆疊", "memory stack"]):
+        matched_img = os.path.join(assets_dir, "hbm_stack.png")
+        
+    if matched_img and os.path.exists(matched_img):
+        print(f"投影片 {idx+1} 『{title_text}』匹配到專屬製程圖: {os.path.basename(matched_img)}")
+        add_split_slide_with_image(s_data, matched_img)
     else:
-        add_standard_slide(s_data)
+        # Fallback to standard index-based or layout-based matching if no specific module is matched
+        if "自主製程控制" in title_text or "APC" in title_text or idx == 1:
+            add_split_slide_with_image(s_data, img_chamber_default)
+        elif "缺陷分析" in title_text or "根因診斷" in title_text or idx == 2:
+            add_split_slide_with_image(s_data, img_defect_default)
+        elif "Agent 良率" in title_text or "治理" in title_text or idx == 4:
+            add_split_slide_with_image(s_data, img_yield_default)
+        else:
+            add_standard_slide(s_data)
 
 # ── 3. Create Thank You / End Slide ───────────────────────────────────
 end_slide = prs.slides.add_slide(slide_layout)
