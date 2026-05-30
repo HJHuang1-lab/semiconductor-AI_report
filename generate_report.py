@@ -97,6 +97,7 @@ try:
         {{
           "title": "投影片單頁標題",
           "subtitle": "單頁副標題或核心 Takeaway",
+          "image_prompt": "專為本頁投影片主題設計的 Imagen 4.0 英文畫圖提示詞（字數約 30-50 字）。必須與本頁的最新製程進展高度契合。例如：'A premium flat vector illustration showing [主題細節], dark tech theme, neon cyan and gold accents, futuristic, high precision diagram style'",
           "cards": [
             {{
               "title": "卡片小標題",
@@ -153,7 +154,7 @@ except Exception as e:
         <h3>3. 領域專用模型 SemiKong 與 Agent 良率治理 (Agent Yield Stack)</h3>
         <ul>
             <li><b>SemiKong 的開源與進展</b>：由 Aitomatic、東京威力科創 (TEL) 等巨頭基於 Llama 3 聯合開發的 SemiKong 是全球首個半導體專用大模型，採用 Domain-Aware Neurosymbolic Agents (DANA) 架構，專為解決蝕刻與化學氣相沉積 (CVD) 等高專業領域設計。</li>
-            <li><b>Agent Yield Stack 新概念</b>：業界最新提出的 Agent Yield Stack 概念，主張將半導體製程的良率控制思維（如 poka-yoke 防呆、閉環 Run-to-Run 控制）反向應用於提升 AI Agent 系統的穩定度。透過追蹤 Agent 運作的每一部 Telemetry 並加入 Statistical Process Control (SPC)，將 fragile 的 AI 展示轉化為工業級的高可靠度系統。</li>
+            <li><b>Agent Yield Stack 新概念</b>：業界最新提出的 Agent Yield Stack 概念，主張將半導體製程的良率控制思維（如 poka-yoke 防呆、閉環 Run-to-Run 控制）反向應用於提升 AI Agent 系統的穩定度。透過追蹤 Agent 運作的每一部 Telemetry 並加入 Statistical Process Control (SPC)，將 fragile 的 AI 展示轉化為 industrial-grade 的高可靠度系統。</li>
         </ul>
 
         <h3>4. 先進封裝 CoWoS 與高頻寬記憶體 (HBM) 的良率優化</h3>
@@ -166,6 +167,7 @@ except Exception as e:
             {
                 "title": "半導體製程演進之良率挑戰",
                 "subtitle": "物理極限與製程步驟激增帶來的傳統控制失效",
+                "image_prompt": "A high-tech vector illustration of a silicon wafer with complex nodes and physical limits, dark theme, neon cyan accents, futuristic technology diagram.",
                 "cards": [
                     {
                         "title": "超越傳統統計控制 (SPC)",
@@ -184,6 +186,7 @@ except Exception as e:
             {
                 "title": "自主製程控制 (APC) 的 Agentic 化",
                 "subtitle": "多 Agent 系統在 Chamber 與設備端的即時校準",
+                "image_prompt": "Semiconductor manufacturing chamber with real-time digital monitor gauges showing graphs, AI agent control loop icon overlay, dark slate blue background, neon cyan and gold accents.",
                 "cards": [
                     {
                         "title": "Chamber 級虛擬控制器",
@@ -198,6 +201,7 @@ except Exception as e:
             {
                 "title": "智能缺陷分析與根因診斷",
                 "subtitle": "整合 Wafer Sort 與測試大數據的即時診斷",
+                "image_prompt": "Silicon wafer defect map showing detailed scan patterns under microscopic camera, diagnostic AI highlights, high-tech interface design, neon gold and cyan indicators.",
                 "cards": [
                     {
                         "title": "多源數據特徵融合",
@@ -216,6 +220,7 @@ except Exception as e:
             {
                 "title": "半導體專用模型 SemiKong 剖析",
                 "subtitle": "基於 DANA 架構的領域知識與物理規律整合",
+                "image_prompt": "Modern semiconductor open-source large language model concept diagram, Aitomatic SemiKong, Llama 3 based, flat technology vector illustration, dark slate card.",
                 "cards": [
                     {
                         "title": "首個半導體開源大模型",
@@ -230,6 +235,7 @@ except Exception as e:
             {
                 "title": "新興概念：Agent 良率架構",
                 "subtitle": "將半導體良率控制概念反向應用於 AI 系統治理",
+                "image_prompt": "Abstract technology concept diagram representing the agent yield stack layers, error-proofing, telemetry sensors, statistical process control feedback loop, modern clean flat tech design, dark theme.",
                 "cards": [
                     {
                         "title": "Agent Telemetry 與監控",
@@ -244,6 +250,7 @@ except Exception as e:
             {
                 "title": "先進封裝與異質整合的良率管理",
                 "subtitle": "Chiplet 與 HBM 製造中的 AI 協同優化",
+                "image_prompt": "Advanced chiplet semiconductor packaging design with high bandwidth memory HBM stacks, 3D integration diagram, dark theme slate card, neon accents.",
                 "cards": [
                     {
                         "title": "已知合格晶粒 (KGD) 挑戰",
@@ -286,6 +293,48 @@ COLOR_GOLD = RGBColor(253, 224, 71)     # Accent Gold
 COLOR_TEXT = RGBColor(203, 213, 225)     # Soft Light Gray
 COLOR_MUTED = RGBColor(148, 163, 184)    # Slate Gray for metadata
 
+# Asset Image Configuration
+assets_dir = "assets"
+img_cover_default = os.path.join(assets_dir, "semiconductor_ai.png")
+img_chamber_default = os.path.join(assets_dir, "chamber_control.png")
+img_defect_default = os.path.join(assets_dir, "wafer_defect.png")
+img_yield_default = os.path.join(assets_dir, "yield_stack.png")
+
+def get_or_generate_slide_image(s_data, default_img_path):
+    """
+    Attempts to dynamically generate a custom illustration using Imagen 4.0 based on the slide's theme.
+    Falls back to the high-quality preset image if dynamic generation fails (e.g. Free Tier developer key).
+    """
+    image_prompt = s_data.get("image_prompt")
+    if not image_prompt:
+        return default_img_path
+        
+    temp_img_path = f"assets/dynamic_temp_{os.path.basename(default_img_path)}"
+    
+    try:
+        print(f"嘗試為主題『{s_data.get('title')}』動態生成 AI 插圖...")
+        print(f"提示詞: {image_prompt}")
+        
+        result = client.models.generate_images(
+            model='imagen-4.0-generate-001',
+            prompt=image_prompt,
+            config=dict(
+                number_of_images=1,
+                output_mime_type='image/png',
+                aspect_ratio='4:3'
+            )
+        )
+        for idx, generated_image in enumerate(result.generated_images):
+            os.makedirs("assets", exist_ok=True)
+            generated_image.image.save(temp_img_path)
+            print(f"✅ 動態 AI 插圖生成成功！儲存於: {temp_img_path}")
+            return temp_img_path
+            
+    except Exception as e:
+        print(f"⚠️ 動態 AI 插圖生成未啟用 (API Key 權限限制/免費帳號): {e}")
+        print(f"👉 自動啟動安全備份方案，使用高質感預設圖片: {default_img_path}")
+        return default_img_path
+
 def apply_background(slide, color):
     """Draws a full-slide rectangle to apply solid background color without standard borders."""
     bg = slide.shapes.add_shape(
@@ -302,62 +351,120 @@ slide_layout = prs.slide_layouts[6] # Blank layout
 title_slide = prs.slides.add_slide(slide_layout)
 apply_background(title_slide, COLOR_BG)
 
-# Title Slide Decorative Accent Card
-accent_card = title_slide.shapes.add_shape(
-    1, Inches(1.0), Inches(1.5), Inches(11.333), Inches(4.5)
-)
-accent_card.fill.solid()
-accent_card.fill.fore_color.rgb = COLOR_CARD_BG
-accent_card.line.color.rgb = COLOR_CARD_BORDER
-accent_card.line.width = Pt(1.5)
+# Attempt Cover Image dynamic generation, fallback to semiconductor_ai.png
+cover_img_prompt = {
+    "title": "簡報封面",
+    "image_prompt": "A premium flat vector illustration of a silicon wafer with glowing neural network nodes and AI agent symbols, dark theme, neon cyan and gold color palette, futuristic and professional."
+}
+img_cover = get_or_generate_slide_image(cover_img_prompt, img_cover_default)
 
-# Horizontal golden accent line
-gold_line = title_slide.shapes.add_shape(
-    1, Inches(1.5), Inches(3.9), Inches(4.5), Inches(0.04)
-)
-gold_line.fill.solid()
-gold_line.fill.fore_color.rgb = COLOR_GOLD
-gold_line.line.color.rgb = COLOR_GOLD
+if os.path.exists(img_cover):
+    # Left side: Text Box with card background
+    accent_card = title_slide.shapes.add_shape(
+        1, Inches(0.8), Inches(1.5), Inches(6.0), Inches(4.5)
+    )
+    accent_card.fill.solid()
+    accent_card.fill.fore_color.rgb = COLOR_CARD_BG
+    accent_card.line.color.rgb = COLOR_CARD_BORDER
+    accent_card.line.width = Pt(1.5)
+    
+    title_box = title_slide.shapes.add_textbox(Inches(1.2), Inches(1.8), Inches(5.2), Inches(2.2))
+    tf = title_box.text_frame
+    tf.word_wrap = True
+    tf.margin_left = tf.margin_right = tf.margin_top = tf.margin_bottom = 0
+    
+    p1 = tf.paragraphs[0]
+    p1.text = data["title"]
+    p1.font.name = "Microsoft JhengHei"
+    p1.font.size = Pt(28)
+    p1.font.bold = True
+    p1.font.color.rgb = COLOR_TITLE
+    p1.space_after = Pt(14)
+    
+    p2 = tf.add_paragraph()
+    p2.text = data["subtitle"]
+    p2.font.name = "Microsoft JhengHei"
+    p2.font.size = Pt(14)
+    p2.font.bold = True
+    p2.font.color.rgb = COLOR_SUBTITLE
+    
+    meta_box = title_slide.shapes.add_textbox(Inches(1.2), Inches(4.7), Inches(5.2), Inches(1.0))
+    tf_meta = meta_box.text_frame
+    tf_meta.word_wrap = True
+    tf_meta.margin_left = tf_meta.margin_right = tf_meta.margin_top = tf_meta.margin_bottom = 0
+    
+    p_meta = tf_meta.paragraphs[0]
+    p_meta.text = data["presenter"]
+    p_meta.font.name = "Segoe UI"
+    p_meta.font.size = Pt(12)
+    p_meta.font.color.rgb = COLOR_MUTED
+    
+    # Right side: Visual card with the glowing cover image
+    img_card = title_slide.shapes.add_shape(
+        1, Inches(7.2), Inches(1.5), Inches(5.333), Inches(4.5)
+    )
+    img_card.fill.solid()
+    img_card.fill.fore_color.rgb = COLOR_CARD_BG
+    img_card.line.color.rgb = COLOR_CARD_BORDER
+    img_card.line.width = Pt(1.5)
+    
+    img_pad = Inches(0.15)
+    title_slide.shapes.add_picture(
+        img_cover, 
+        Inches(7.2) + img_pad, Inches(1.5) + img_pad, 
+        Inches(5.333) - (img_pad * 2), Inches(4.5) - (img_pad * 2)
+    )
+else:
+    # Full screen layout if image doesn't exist
+    accent_card = title_slide.shapes.add_shape(
+        1, Inches(1.0), Inches(1.5), Inches(11.333), Inches(4.5)
+    )
+    accent_card.fill.solid()
+    accent_card.fill.fore_color.rgb = COLOR_CARD_BG
+    accent_card.line.color.rgb = COLOR_CARD_BORDER
+    accent_card.line.width = Pt(1.5)
+    
+    gold_line = title_slide.shapes.add_shape(
+        1, Inches(1.5), Inches(3.9), Inches(4.5), Inches(0.04)
+    )
+    gold_line.fill.solid()
+    gold_line.fill.fore_color.rgb = COLOR_GOLD
+    gold_line.line.color.rgb = COLOR_GOLD
+    
+    title_box = title_slide.shapes.add_textbox(Inches(1.5), Inches(1.8), Inches(10.333), Inches(2.0))
+    tf = title_box.text_frame
+    tf.word_wrap = True
+    
+    p1 = tf.paragraphs[0]
+    p1.text = data["title"]
+    p1.font.name = "Microsoft JhengHei"
+    p1.font.size = Pt(36)
+    p1.font.bold = True
+    p1.font.color.rgb = COLOR_TITLE
+    p1.space_after = Pt(24)
+    
+    p2 = tf.add_paragraph()
+    p2.text = data["subtitle"]
+    p2.font.name = "Microsoft JhengHei"
+    p2.font.size = Pt(18)
+    p2.font.bold = True
+    p2.font.color.rgb = COLOR_SUBTITLE
+    
+    meta_box = title_slide.shapes.add_textbox(Inches(1.5), Inches(4.5), Inches(10.333), Inches(1.0))
+    tf_meta = meta_box.text_frame
+    p_meta = tf_meta.paragraphs[0]
+    p_meta.text = data["presenter"]
+    p_meta.font.name = "Segoe UI"
+    p_meta.font.size = Pt(13)
+    p_meta.font.color.rgb = COLOR_MUTED
 
-# Title & Subtitle in a single TextFrame to prevent overlaps
-title_box = title_slide.shapes.add_textbox(Inches(1.5), Inches(1.8), Inches(10.333), Inches(2.0))
-tf = title_box.text_frame
-tf.word_wrap = True
-tf.margin_left = tf.margin_right = tf.margin_top = tf.margin_bottom = 0
-
-p1 = tf.paragraphs[0]
-p1.text = data["title"]
-p1.font.name = "Microsoft JhengHei"
-p1.font.size = Pt(36)
-p1.font.bold = True
-p1.font.color.rgb = COLOR_TITLE
-p1.space_after = Pt(24)
-
-p2 = tf.add_paragraph()
-p2.text = data["subtitle"]
-p2.font.name = "Microsoft JhengHei"
-p2.font.size = Pt(18)
-p2.font.bold = True
-p2.font.color.rgb = COLOR_SUBTITLE
-
-# Metadata Box (Presenter & Date)
-meta_box = title_slide.shapes.add_textbox(Inches(1.5), Inches(4.5), Inches(10.333), Inches(1.0))
-tf_meta = meta_box.text_frame
-tf_meta.word_wrap = True
-tf_meta.margin_left = tf_meta.margin_right = tf_meta.margin_top = tf_meta.margin_bottom = 0
-
-p_meta = tf_meta.paragraphs[0]
-p_meta.text = data["presenter"]
-p_meta.font.name = "Segoe UI"
-p_meta.font.size = Pt(13)
-p_meta.font.color.rgb = COLOR_MUTED
-
-# ── 2. Create Content Slides dynamically based on JSON data ──────────
-for s_data in data["slides"]:
+# ── 2. Create Content Slides dynamically ──────────────────────────────
+def add_split_slide_with_image(s_data, img_path):
+    """Generates a NotebookLM-style split slide: Left 2 cards, Right 1 beautiful AI Image."""
     slide = prs.slides.add_slide(slide_layout)
     apply_background(slide, COLOR_BG)
     
-    # ── Slide Title & Subtitle ────────────────────────────────────────
+    # Slide Title
     title_box = slide.shapes.add_textbox(Inches(1.0), Inches(0.5), Inches(11.333), Inches(1.2))
     tf = title_box.text_frame
     tf.word_wrap = True
@@ -377,14 +484,110 @@ for s_data in data["slides"]:
     p_sub.font.size = Pt(13)
     p_sub.font.color.rgb = COLOR_MUTED
     
-    # ── Render Cards side-by-side ────────────────────────────────────
+    # Left Column: Structured Cards (NotebookLM deep analysis style)
+    cards = s_data["cards"]
+    card_x = Inches(1.0)
+    card_width = Inches(5.3)
+    
+    if len(cards) == 1:
+        card_data = [(Inches(1.8), Inches(4.8), cards[0])]
+    else:
+        card_h = Inches(2.25)
+        gap = Inches(0.3)
+        card_data = [
+            (Inches(1.8), card_h, cards[0]),
+            (Inches(1.8) + card_h + gap, card_h, cards[1])
+        ]
+        
+    for card_y, card_h, card in card_data:
+        card_shape = slide.shapes.add_shape(1, card_x, card_y, card_width, card_h)
+        card_shape.fill.solid()
+        card_shape.fill.fore_color.rgb = COLOR_CARD_BG
+        card_shape.line.color.rgb = COLOR_CARD_BORDER
+        card_shape.line.width = Pt(1.5)
+        
+        pad = Inches(0.25)
+        text_box = slide.shapes.add_textbox(card_x + pad, card_y + pad, card_width - (pad * 2), card_h - (pad * 2))
+        tf_card = text_box.text_frame
+        tf_card.word_wrap = True
+        tf_card.margin_left = tf_card.margin_right = tf_card.margin_top = tf_card.margin_bottom = 0
+        
+        p_c_title = tf_card.paragraphs[0]
+        p_c_title.text = f"📍 {card['title']}"
+        p_c_title.font.name = "Microsoft JhengHei"
+        p_c_title.font.size = Pt(15)
+        p_c_title.font.bold = True
+        p_c_title.font.color.rgb = COLOR_GOLD
+        p_c_title.space_after = Pt(8)
+        
+        p_c_body = tf_card.add_paragraph()
+        p_c_body.text = card["content"]
+        p_c_body.font.name = "Microsoft JhengHei"
+        p_c_body.font.size = Pt(11)
+        p_c_body.font.color.rgb = COLOR_TEXT
+        p_c_body.line_spacing = 1.3
+        
+    # Right Column: Visual Diagram Container
+    img_x = Inches(6.8)
+    img_y = Inches(1.8)
+    img_width = Inches(5.5)
+    img_height = Inches(4.8)
+    
+    img_card = slide.shapes.add_shape(1, img_x, img_y, img_width, img_height)
+    img_card.fill.solid()
+    img_card.fill.fore_color.rgb = COLOR_CARD_BG
+    img_card.line.color.rgb = COLOR_CARD_BORDER
+    img_card.line.width = Pt(1.5)
+    
+    # Attempt to dynamically generate image, fallback to default high quality preset
+    final_img_path = get_or_generate_slide_image(s_data, img_path)
+    
+    img_pad = Inches(0.15)
+    if os.path.exists(final_img_path):
+        slide.shapes.add_picture(
+            final_img_path, 
+            img_x + img_pad, img_y + img_pad, 
+            img_width - (img_pad * 2), img_height - (img_pad * 2)
+        )
+    else:
+        text_box = slide.shapes.add_textbox(img_x + Inches(0.5), img_y + Inches(2.0), img_width - Inches(1.0), Inches(1.0))
+        tf_img = text_box.text_frame
+        p_img = tf_img.paragraphs[0]
+        p_img.text = f"[ 📊 晶圓製造製程示意圖 ]\n({os.path.basename(final_img_path)})"
+        p_img.font.name = "Microsoft JhengHei"
+        p_img.font.size = Pt(14)
+        p_img.font.color.rgb = COLOR_MUTED
+        p_img.alignment = 1
+
+def add_standard_slide(s_data):
+    """Generates a standard multi-card widescreen slide for layout diversity."""
+    slide = prs.slides.add_slide(slide_layout)
+    apply_background(slide, COLOR_BG)
+    
+    title_box = slide.shapes.add_textbox(Inches(1.0), Inches(0.5), Inches(11.333), Inches(1.2))
+    tf = title_box.text_frame
+    tf.word_wrap = True
+    tf.margin_left = tf.margin_right = tf.margin_top = tf.margin_bottom = 0
+    
+    p_title = tf.paragraphs[0]
+    p_title.text = s_data["title"]
+    p_title.font.name = "Microsoft JhengHei"
+    p_title.font.size = Pt(26)
+    p_title.font.bold = True
+    p_title.font.color.rgb = COLOR_SUBTITLE
+    p_title.space_after = Pt(6)
+    
+    p_sub = tf.add_paragraph()
+    p_sub.text = s_data["subtitle"]
+    p_sub.font.name = "Microsoft JhengHei"
+    p_sub.font.size = Pt(13)
+    p_sub.font.color.rgb = COLOR_MUTED
+    
     cards = s_data["cards"]
     num_cards = len(cards)
     
-    # Calculate margins and positions dynamically
     content_top = Inches(1.8)
     content_height = Inches(4.8)
-    slide_content_width = Inches(11.333) # 13.333 - 1.0 margin left/right
     
     if num_cards == 2:
         card_width = Inches(5.4)
@@ -399,27 +602,18 @@ for s_data in data["slides"]:
     for idx, card in enumerate(cards):
         left_pos = Inches(1.0) + idx * (card_width + card_gap)
         
-        # 1. Render Card Background (Premium dark card with subtle borders)
-        card_shape = slide.shapes.add_shape(
-            1, left_pos, content_top, card_width, content_height
-        )
+        card_shape = slide.shapes.add_shape(1, left_pos, content_top, card_width, content_height)
         card_shape.fill.solid()
         card_shape.fill.fore_color.rgb = COLOR_CARD_BG
         card_shape.line.color.rgb = COLOR_CARD_BORDER
         card_shape.line.width = Pt(1.5)
         
-        # 2. Add text overlay on the card
-        # Add 0.35 inch internal padding
         pad = Inches(0.35)
-        text_box = slide.shapes.add_textbox(
-            left_pos + pad, content_top + pad, 
-            card_width - (pad * 2), content_height - (pad * 2)
-        )
+        text_box = slide.shapes.add_textbox(left_pos + pad, content_top + pad, card_width - (pad * 2), content_height - (pad * 2))
         tf_card = text_box.text_frame
         tf_card.word_wrap = True
         tf_card.margin_left = tf_card.margin_right = tf_card.margin_top = tf_card.margin_bottom = 0
         
-        # Card Header
         p_c_title = tf_card.paragraphs[0]
         p_c_title.text = f"📍 {card['title']}"
         p_c_title.font.name = "Microsoft JhengHei"
@@ -428,7 +622,6 @@ for s_data in data["slides"]:
         p_c_title.font.color.rgb = COLOR_GOLD
         p_c_title.space_after = Pt(14)
         
-        # Card Body text
         p_c_body = tf_card.add_paragraph()
         p_c_body.text = card["content"]
         p_c_body.font.name = "Microsoft JhengHei"
@@ -436,11 +629,22 @@ for s_data in data["slides"]:
         p_c_body.font.color.rgb = COLOR_TEXT
         p_c_body.line_spacing = 1.35
 
+# Process slides based on title matching
+for idx, s_data in enumerate(data["slides"]):
+    # Match specific index/topics to our 3 high-quality generated images
+    if "自主製程控制" in s_data["title"] or "APC" in s_data["title"] or idx == 1:
+        add_split_slide_with_image(s_data, img_chamber_default)
+    elif "缺陷分析" in s_data["title"] or "根因診斷" in s_data["title"] or idx == 2:
+        add_split_slide_with_image(s_data, img_defect_default)
+    elif "Agent 良率" in s_data["title"] or "治理" in s_data["title"] or idx == 4:
+        add_split_slide_with_image(s_data, img_yield_default)
+    else:
+        add_standard_slide(s_data)
+
 # ── 3. Create Thank You / End Slide ───────────────────────────────────
 end_slide = prs.slides.add_slide(slide_layout)
 apply_background(end_slide, COLOR_BG)
 
-# Center decorative accent card
 end_card = end_slide.shapes.add_shape(
     1, Inches(2.0), Inches(2.0), Inches(9.333), Inches(3.5)
 )
