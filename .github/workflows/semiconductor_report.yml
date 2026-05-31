@@ -11,6 +11,8 @@ jobs:
   build-and-send:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: write
 
     steps:
       # ── Step 1：下載程式碼 ──────────────────────────────────
@@ -37,3 +39,21 @@ jobs:
           GMAIL_USER: a5170171@gmail.com
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           PYTHONIOENCODING: utf-8
+
+      # ── Step 5：自動提交並推送 Obsidian 日誌回 GitHub ────────────────
+      - name: 📝 自動提交並推送日誌
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          if [ -d "daily_notes" ]; then
+            git add daily_notes/
+            if git diff --cached --quiet; then
+              echo "沒有新的日誌需要提交"
+            else
+              git commit -m "chore: auto-add daily semiconductor yield report note [skip ci]"
+              git push
+            fi
+          else
+            echo "找不到 daily_notes 資料夾，跳過提交"
+          fi
+

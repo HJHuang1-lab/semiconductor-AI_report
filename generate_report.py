@@ -711,6 +711,124 @@ print(f"✅ 成功生成並儲存 PPT 檔案於: {output_ppt}")
 
 
 # ──────────────────────────────────────────────────────────────────────
+# Step 5: Obsidian Daily Note / Markdown Log Generation
+# ──────────────────────────────────────────────────────────────────────
+print("\n正在生成 Obsidian 格式之每日半導體良率分析 Markdown 日誌...")
+
+import re
+
+def html_to_markdown(html_text):
+    if not html_text:
+        return ""
+    # 去除多餘前導空格（如 Python 多行字串的前導縮排）
+    lines = [line.strip() for line in html_text.strip().split('\n')]
+    md = '\n'.join(lines)
+    
+    # 替換標題
+    md = re.sub(r'<h2>\s*(.*?)\s*</h2>', r'## \1\n', md)
+    md = re.sub(r'<h3>\s*(.*?)\s*</h3>', r'### \1\n', md)
+    
+    # 替換段落
+    md = re.sub(r'<p>\s*(.*?)\s*</p>', r'\1\n\n', md)
+    
+    # 替換清單項目
+    md = re.sub(r'<li>\s*(.*?)\s*</li>', r'- \1', md)
+    
+    # 移除 ul 容器
+    md = re.sub(r'<ul>\s*', '', md)
+    md = re.sub(r'\s*</ul>', '\n', md)
+    
+    # 替換粗體
+    md = re.sub(r'<b>\s*(.*?)\s*</b>', r'**\1**', md)
+    md = re.sub(r'<strong>\s*(.*?)\s*</strong>', r'**\1**', md)
+    
+    # 替換換行
+    md = re.sub(r'<br\s*/?>', '\n', md)
+    
+    # 清理多餘換行
+    md = re.sub(r'\n{3,}', '\n\n', md)
+    
+    return md.strip()
+
+# 生成投影片結構的 Callouts 區塊
+slides_md = ""
+for idx, slide in enumerate(data.get("slides", [])):
+    slides_md += f"### 📍 {idx+1}. {slide.get('title')}\n"
+    slides_md += f"> [!info] **{slide.get('subtitle')}**\n"
+    
+    cards = slide.get("cards", [])
+    for card_idx, card in enumerate(cards):
+        slides_md += f"> \n> #### 📌 {card.get('title')}\n"
+        card_content = card.get('content', '')
+        content_lines = card_content.split('\n')
+        for line in content_lines:
+            slides_md += f"> {line}\n"
+        
+        # 僅在非最後一張卡片時加入分隔線
+        if card_idx < len(cards) - 1:
+            slides_md += f"> \n> ---\n"
+            
+    slides_md += "\n\n"
+
+# 將 email_summary 轉換為 markdown 並確保每一行都有 "> " 符號，使其完整呈現在 Obsidian callout 中
+summary_md = html_to_markdown(data.get('email_summary'))
+summary_callout_lines = [f"> {line}" if line else "> " for line in summary_md.split('\n')]
+summary_callout = '\n'.join(summary_callout_lines)
+
+# 取得今天日期
+today_str = datetime.now().strftime('%Y-%m-%d')
+filename = f"{today_str}-Semiconductor-AI-Report.md"
+
+# 組合符合 Obsidian 排版的 Markdown 內容 (含 YAML Frontmatter)
+obsidian_note = f"""---
+title: "{data.get('title')}"
+subtitle: "{data.get('subtitle')}"
+presenter: "{data.get('presenter')}"
+date: {today_str}
+tags:
+  - semiconductor
+  - ai-agent
+  - yield-enhancement
+  - daily-report
+category: Daily Report
+---
+
+# 🤖 {data.get('title')}
+> 📅 **報告時間**：{today_str} | **報告單位**：{data.get('presenter')}
+> 🏷️ **標籤**：#semiconductor #ai-agent #yield-enhancement #daily-report
+
+## 📋 每日深度摘要
+
+> [!abstract] **全球最新動態大綱**
+{summary_callout}
+
+---
+
+## 🔍 核心議題與投影片深度解讀
+
+{slides_md}"""
+
+# 判斷寫入路徑
+obsidian_vault_path = os.getenv("OBSIDIAN_VAULT_PATH")
+if obsidian_vault_path:
+    os.makedirs(obsidian_vault_path, exist_ok=True)
+    target_path = os.path.join(obsidian_vault_path, filename)
+    print(f"👉 偵測到本機 Obsidian 庫房路徑，將直接寫入：{target_path}")
+else:
+    repo_notes_dir = "daily_notes"
+    os.makedirs(repo_notes_dir, exist_ok=True)
+    target_path = os.path.join(repo_notes_dir, filename)
+    print(f"👉 未指定本機 Obsidian 庫房路徑，預設儲存於專案內：{target_path}")
+
+try:
+    with open(target_path, "w", encoding="utf-8") as f:
+        f.write(obsidian_note)
+    print(f"✅ Obsidian Markdown 日誌生成成功！儲存路徑: {target_path}")
+except Exception as e:
+    print(f"❌ 錯誤：生成 Obsidian 日誌失敗: {e}")
+
+
+# ──────────────────────────────────────────────────────────────────────
 # Step 4: Securely Send Email via SMTP with Attachment
 # ──────────────────────────────────────────────────────────────────────
 print("\n正在撰寫並透過安全 SMTP 發送電子郵件...")
