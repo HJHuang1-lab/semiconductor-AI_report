@@ -1,0 +1,1601 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOP to Agentic Workflow - 影片互動播放模擬器 (GPT-SoVITS 地端整合版)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0F172A;
+            --card-bg: #1E293B;
+            --card-border: #334155;
+            --title-color: #F8FAFC;
+            --subtitle-color: #38BDF8;
+            --gold-color: #FDE047;
+            --text-color: #CBD5E1;
+            --muted-color: #94A6B8;
+            --primary-glow: rgba(56, 189, 248, 0.15);
+            --transition-speed: 0.4s;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background-color: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--card-border);
+            padding: 1.2rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--title-color);
+            background: linear-gradient(135deg, #F8FAFC 0%, #38BDF8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-title p {
+            font-size: 0.8rem;
+            color: var(--muted-color);
+            margin-top: 0.2rem;
+        }
+
+        .badge {
+            background-color: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            color: var(--subtitle-color);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+            height: calc(100vh - 80px);
+        }
+
+        @media (max-width: 1100px) {
+            main {
+                grid-template-columns: 1fr;
+                height: auto;
+                overflow-y: auto;
+            }
+        }
+
+        .left-column {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            height: 100%;
+        }
+
+        .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* ─── Slide Player Area ─── */
+        .player-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            flex: 1;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3), 0 0 40px var(--primary-glow);
+            transition: box-shadow var(--transition-speed);
+        }
+
+        .slide-stage {
+            flex: 1;
+            position: relative;
+            background-color: #0B0F19;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .slide-frame {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity var(--transition-speed) ease, visibility var(--transition-speed);
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            padding: 2rem;
+            gap: 2rem;
+        }
+
+        .slide-frame.active {
+            opacity: 1;
+            visibility: visible;
+            z-index: 5;
+        }
+
+        .slide-left {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .slide-header h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--subtitle-color);
+            line-height: 1.2;
+        }
+
+        .slide-header p {
+            font-size: 0.95rem;
+            color: var(--muted-color);
+            margin-top: 0.4rem;
+        }
+
+        .slide-cards-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .slide-card-node {
+            background-color: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-left: 4px solid var(--gold-color);
+            padding: 0.8rem 1rem;
+            border-radius: 8px;
+            transition: transform 0.2s;
+        }
+
+        .slide-card-node:hover {
+            transform: translateX(5px);
+            background-color: rgba(30, 41, 59, 0.8);
+        }
+
+        .slide-card-node h4 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--title-color);
+            margin-bottom: 0.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .slide-card-node p {
+            font-size: 0.82rem;
+            color: var(--text-color);
+            line-height: 1.35;
+        }
+
+        .slide-right {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+            background-color: var(--bg-color);
+            height: 100%;
+        }
+
+        .slide-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 10s ease;
+        }
+
+        .slide-frame.active .slide-img {
+            transform: scale(1.05);
+        }
+
+        /* ─── Control Bar ─── */
+        .controls-panel {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .timeline-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            width: 100%;
+        }
+
+        .time-label {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.8rem;
+            color: var(--muted-color);
+            min-width: 40px;
+        }
+
+        .progress-track {
+            flex: 1;
+            height: 6px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            position: relative;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--subtitle-color), var(--gold-color));
+            border-radius: 10px;
+            transition: width 0.1s linear;
+        }
+
+        .buttons-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .control-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s, transform 0.2s;
+        }
+
+        .control-btn:hover {
+            color: var(--subtitle-color);
+            transform: scale(1.08);
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+
+        .play-pause-btn {
+            background-color: var(--subtitle-color);
+            color: var(--bg-color);
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+        }
+
+        .play-pause-btn:hover {
+            background-color: var(--title-color);
+            color: var(--bg-color);
+            box-shadow: 0 0 20px rgba(255,255,255,0.6);
+            transform: scale(1.05);
+        }
+
+        .playback-meta {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .playback-speed {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            color: var(--text-color);
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .slide-dots {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            transition: background-color var(--transition-speed), width var(--transition-speed);
+        }
+
+        .dot.active {
+            background-color: var(--subtitle-color);
+            width: 20px;
+            border-radius: 4px;
+        }
+
+        /* ─── Audio Settings Panel ─── */
+        .audio-settings-bar {
+            background-color: rgba(30, 41, 59, 0.95);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 0.8rem 1.2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .settings-row {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--title-color);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .toggle-container input[type="checkbox"] {
+            cursor: pointer;
+            width: 15px;
+            height: 15px;
+            accent-color: var(--subtitle-color);
+        }
+
+        .engine-select {
+            background-color: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--card-border);
+            color: var(--title-color);
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        /* GPT-SoVITS Details Panel */
+        .gpt-details-panel {
+            background-color: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 0.8rem 1rem;
+            margin-top: 0.2rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.8rem;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .input-group label {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--subtitle-color);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .input-group input {
+            background-color: rgba(30, 41, 59, 0.8);
+            border: 1px solid var(--card-border);
+            color: var(--title-color);
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.78rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-group input:focus {
+            border-color: var(--subtitle-color);
+        }
+
+        .panel-full-width {
+            grid-column: span 2;
+        }
+
+        /* ─── Teleprompter ─── */
+        .teleprompter-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            flex: 1.2;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        }
+
+        .card-header {
+            padding: 1rem 1.2rem;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: rgba(255,255,255,0.01);
+        }
+
+        .card-header-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--title-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .teleprompter-view {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+            scroll-behavior: smooth;
+            background-color: rgba(11, 15, 25, 0.3);
+        }
+
+        .script-para {
+            font-size: 1.05rem;
+            line-height: 1.6;
+            color: rgba(203, 213, 225, 0.4);
+            transition: color var(--transition-speed) ease, border-left var(--transition-speed);
+            border-left: 3px solid transparent;
+            padding-left: 0.8rem;
+            cursor: pointer;
+        }
+
+        .script-para:hover {
+            color: rgba(248, 250, 252, 0.8);
+        }
+
+        .script-para.active {
+            color: var(--title-color);
+            font-weight: 500;
+            border-left-color: var(--subtitle-color);
+            text-shadow: 0 0 1px rgba(248, 250, 252, 0.5);
+        }
+
+        /* ─── Director's Panel ─── */
+        .directors-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            flex: 0.8;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        }
+
+        .directors-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .director-row {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            background-color: rgba(15, 23, 42, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.02);
+            padding: 0.8rem 1rem;
+            border-radius: 8px;
+        }
+
+        .director-row-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--gold-color);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .director-row-val {
+            font-size: 0.85rem;
+            color: var(--text-color);
+            line-height: 1.4;
+        }
+
+        /* ─── Toast Notifications ─── */
+        .toast-container {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            pointer-events: none;
+        }
+
+        .toast-notif {
+            background-color: var(--gold-color);
+            color: var(--bg-color);
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            box-shadow: 0 4px 15px rgba(253, 224, 71, 0.3);
+            animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .toast-notif.sfx {
+            background-color: #EC4899;
+            color: #FFF;
+            box-shadow: 0 4px 15px rgba(236, 72, 153, 0.3);
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0; transform: scale(0.9); }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-title">
+            <h1>SOP to Agentic Workflow 影片製作模擬器</h1>
+            <p>Slide 4 - Slide 9 視覺與【AI 語音/音效合成與 GPT-SoVITS 地端】同步播放器</p>
+        </div>
+        <span class="badge">GPT-SoVITS 地端整合版</span>
+    </header>
+
+    <main>
+        <!-- Left: Slide Player & Controls -->
+        <div class="left-column">
+            <!-- Audio Controls Bar -->
+            <div class="audio-settings-bar">
+                <div class="settings-row">
+                    <label class="toggle-container">
+                        <input type="checkbox" id="ttsToggle" checked>
+                        🔊 啟用 AI 語音導讀
+                    </label>
+                    <label class="toggle-container" style="gap: 0.4rem;">
+                        🎙️ 語音引擎：
+                        <select class="engine-select" id="ttsEngineSelect">
+                            <option value="local_mp3" selected>本地高音質語音檔 (微軟 Neural MP3)</option>
+                            <option value="native">瀏覽器內建 TTS (zh-TW 語音)</option>
+                            <option value="gpt_sovits">地端 GPT-SoVITS (個人克隆聲音)</option>
+                        </select>
+                    </label>
+                    <label class="toggle-container">
+                        <input type="checkbox" id="sfxToggle" checked>
+                        🎵 啟用互動音效 (Synth)
+                    </label>
+                </div>
+                
+                <!-- GPT-SoVITS Collapsible Settings -->
+                <div class="gpt-details-panel" id="gptSettingsPanel" style="display: none;">
+                    <div class="input-group">
+                        <label>地端 API 位址 (Endpoint)</label>
+                        <input type="text" id="gptEndpoint" value="http://127.0.0.1:9880" placeholder="http://127.0.0.1:9880">
+                    </div>
+                    <div class="input-group">
+                        <label>文本語言 (Text Language)</label>
+                        <input type="text" id="gptTextLang" value="zh" placeholder="zh">
+                    </div>
+                    <div class="input-group panel-full-width">
+                        <label>參考音頻路徑 (Refer WAV Path - 適用於高級 API 模式)</label>
+                        <input type="text" id="gptReferWav" value="" placeholder="例如: E:\gpt_sovits\my_voice_5s.wav">
+                    </div>
+                    <div class="input-group">
+                        <label>參考音頻文字 (Prompt Text)</label>
+                        <input type="text" id="gptPromptText" value="" placeholder="例如: 大家好我是主講人">
+                    </div>
+                    <div class="input-group">
+                        <label>參考音頻語言 (Prompt Language)</label>
+                        <input type="text" id="gptPromptLang" value="zh" placeholder="zh">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stage -->
+            <div class="player-card">
+                <!-- Toast Container -->
+                <div class="toast-container" id="toastContainer"></div>
+
+                <div class="slide-stage">
+                    <!-- Slide 4 -->
+                    <div class="slide-frame active" id="slideFrame-4" data-slide="4">
+                        <div class="slide-left">
+                            <div class="slide-header">
+                                <h2>工作流轉換 - Step 1: 格式標準化</h2>
+                                <p>將給人看的散文翻譯成 AI 能精確執行的合約與規範</p>
+                            </div>
+                            <div class="slide-cards-list">
+                                <div class="slide-card-node">
+                                    <h4>📍 參數化配置 (Parametrization)</h4>
+                                    <p>將變數抽離為 parameters 參數（如 mode、temperature），使 SOP 轉化為高容錯的 Template 模板。</p>
+                                </div>
+                                <div class="slide-card-node">
+                                    <h4>📍 引入 RFC 2119 規則強度規定</h4>
+                                    <p>規範規則強度：MUST (絕對必須限制)、SHOULD (建議作法且未執行需說明)、MAY (彈性判定)。</p>
+                                </div>
+                                <div class="slide-card-node">
+                                    <h4>📍 結構化 Markdown 區塊切分</h4>
+                                    <p>用 Markdown 區隔 Parameters、Steps、Error Handling。既方便人類閱讀，更便於直接接入 MCP 當規格合約。</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="slide-right">
+                            <img src="assets/yield_stack.png" class="slide-img" alt="Step 1 Standardization">
+                        </div>
+                    </div>
+
+                    <!-- Slide 5 -->
+                    <div class="slide-frame" id="slideFrame-5" data-slide="5">
+                        <div class="slide-left">
+                            <div class="slide-header">
+                                <h2>工作流轉換 - Step 2: 任務拆解與連結</h2>
+                                <p>精確劃分 Skill 的邊界，並使用 Artifacts 建立透明管道</p>
+                            </div>
+                            <div class="slide-cards-list">
+                                <div class="slide-card-node">
+                                    <h4>📍 劃定 Skill 防守邊界 (Boundary)</h4>
+                                    <p>防守範圍太大則平庸，太小則過度依賴人類。應以「具備獨立產出」作為單一 Skill 的防守防線。</p>
+                                </div>
+                                <div class="slide-card-node">
+                                    <h4>📍 建立獨立的管道節點 (Pipeline Steps)</h4>
+                                    <p>每個步驟獨立執行、獨立 debug、獨立替換。出錯時「壞哪裡改哪裡」，杜絕複合誤差。</p>
+                                </div>
+                                <div class="slide-card-node">
+                                    <h4>📍 以 Artifacts (JSON) 實體數據串接</h4>
+                                    <p>節點間不使用心電感應，而是靠明確定義的 JSON Artifacts。前一步的 Output 完美作為下一步的 Input。</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="slide-right">
+                            <img src="assets/metrology_sensor.png" class="slide-img" alt="Step 2 Decomposition">
+                        </div>
+                    </div>
+
+                    <!-- Slide 6 -->
+                    <div class="slide-frame" id="slideFrame-6" data-slide="6">
+                        <div class="slide-left">
+                            <div class="slide-header">
+                                <h2>工作流轉換 - Step 3: 雙向開發與迭代</h2>
+                                <p>用敏捷 Scrum 精神快速收斂並捕捉大腦中的默會知識</p>
+                            </div>
+                            <div class="slide-cards-list">
+                                <div class="slide-card-node">
+                                    <h4>📍 暴露「默會知識 (Tacit Knowledge)」</h4>
+                                    <p>指存在大腦記憶中難以言表的潛規則。第一版 SOP 常被忽略，必須讓 Agent 跑出去撞牆才能暴露漏洞。</p>
+                                </div>
+                                <div class="slide-card-node">
+                                    <h4>📍 小步快跑的敏捷迭代循環</h4>
+                                    <p>2天產出粗糙 SOP ➡️ 實跑 50 次暴露漏洞 ➡️ SOP 補上 MUST/SHOULD 規則，迅速收斂系統瑕疵。</p>
+                                </div>
+                                <div class="slide-card-node">
+                                    <h4>📍 迭代效率大於理論完美</h4>
+                                    <p>花兩個月閉門造車，不如兩天快速上線並完成 50 次迭代，真實執行反饋是排除 edge cases 的唯一法寶。</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="slide-right">
+                            <img src="assets/yield_graph.png" class="slide-img" alt="Step 3 Bi-directional Dev">
+                        </div>
+                    </div>
+
+                    <!-- Slide 7 -->
+                    <div class="slide-frame" id="slideFrame-7" data-slide="7">
+                        <div class="slide-left">
+                            <div class="slide-header">
+                                <h2>工作流轉換 - Step 4: 整合與執行環境</h2>
+                                <p>利用 MCP 開放協定統一接口，並設立人工安全防線</p>
+                            </div>
+                            <div class="slide-cards-list">
+                                <div class="slide-card-node">
+                                    <h4>📍 MCP 協定：AI 世界的 USB-C</h4>
+                                    <p>Anthropic 捐贈的開放協定。統一 Agent 與外部 API 的調用規格，免去針對不同平台重複開發的痛苦。</p>
+                                </div>
+                                <div class="slide-card-node">
+                                    <h4>📍 人工確認點 (Human-in-the-Loop)</h4>
+                                    <p>在高風險決策前設計 Checkpoint（如撥款、變更權限），強迫 Agent 暫停並在 Slack 等待人類核准。</p>
+                                </div>
+                                <div class="slide-card-node">
+                                    <h4>📍 人類掌舵，AI 划槳</h4>
+                                    <p>建立人類具備最終裁決權、但所有機械、確定性與重複性的繁瑣工作均由 AI 代勞的完美閉環系統。</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="slide-right">
+                            <img src="assets/litho_system.png" class="slide-img" alt="Step 4 Integration">
+                        </div>
+                    </div>
+
+                    <!-- Slide 8 -->
+                    <div class="slide-frame" id="slideFrame-8" data-slide="8">
+                        <div class="slide-left">
+                            <div class="slide-header">
+                                <h2>Triage 案例 - 1. 標準化與任務拆解</h2>
+                                <p>針對 200 人公司日常非結構化雜事請求 triage 流程的拆解實踐</p>
+                            </div>
+                            <div class="slide-cards-list">
+                                <div class="slide-card-node">
+                                    <h4>📍 INTERNAL_REQUEST_TRIAGE SOP</h4>
+                                    <p>定義參數：raw_text, employee_id。MUST 驗證在職、MUST 分類 (IT/HR/Finance)、SHOULD 判定優先級。</p>
+                                </div>
+                                <div class="slide-card-node">
+                                    <h4>📍 拆解為兩個獨立技能</h4>
+                                    <p>技能 1：request-triage（身分驗證、分類、assignee 推薦，產出 JSON Artifact）與技能 2：reply-drafting。</p>
+                                </div>
+                                <div class="slide-card-node">
+                                    <h4>📍 澄清機制與 JSON 中介檔串接</h4>
+                                    <p>若 triage 發現語意模糊，會設置 needs_clarification=true，回覆草擬技能讀取後將 MUST 產生 2-3 個釐清問題。</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="slide-right">
+                            <img src="assets/chamber_control.png" class="slide-img" alt="Triage Part 1">
+                        </div>
+                    </div>
+
+                    <!-- Slide 9 -->
+                    <div class="slide-frame" id="slideFrame-9" data-slide="9">
+                        <div class="slide-left">
+                            <div class="slide-header">
+                                <h2>Triage 案例 - 2. 迭代調優與真實整合</h2>
+                                <p>從 edge case 踩坑中完善防守，並對接企業真實生產系統</p>
+                            </div>
+                            <div class="slide-cards-list">
+                                <div class="slide-card-node">
+                                    <h4>📍 雙向迭代與邊界收斂</h4>
+                                    <p>踩坑：財務報銷錯分到 Other、assignee 錯配離職人。迭代補足防禦與匹配規則，準確率迅速飆升至 98%。</p>
+                                </div>
+                                <div class="slide-card-node">
+                                    <h4>📍 對接真實 MCP 工具伺服器</h4>
+                                    <p>使用 Google Sheet MCP 與 Slack MCP，自動將 triage JSON 登錄追蹤表格，並在 Slack 頻道動態通知負責人。</p>
+                                </div>
+                                <div class="slide-card-node">
+                                    <h4>📍 設立安全 Checkpoint 防線</h4>
+                                    <p>財務報銷金額 > $5000，或涉及 IT 管理權限變更時，強制暫停發送 Slack，等待管理員按 Approve 執行寫入。</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="slide-right">
+                            <img src="assets/fab_agv.png" class="slide-img" alt="Triage Part 2">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls Panel -->
+            <div class="controls-panel">
+                <div class="timeline-container">
+                    <span class="time-label" id="currentTime">00:00</span>
+                    <div class="progress-track" id="progressTrack">
+                        <div class="progress-bar" id="progressBar"></div>
+                    </div>
+                    <span class="time-label" id="totalTime">--:--</span>
+                </div>
+                <div class="buttons-row">
+                    <div class="playback-meta">
+                        <button class="control-btn" id="prevBtn" title="上一個 Slide">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5"></line></svg>
+                        </button>
+                        <button class="control-btn play-pause-btn" id="playBtn" title="播放/暫停">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" id="playIcon"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                        </button>
+                        <button class="control-btn" id="nextBtn" title="下一個 Slide">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
+                        </button>
+                    </div>
+                    <div class="slide-dots" id="slideDots">
+                        <span class="dot active" data-slide="4"></span>
+                        <span class="dot" data-slide="5"></span>
+                        <span class="dot" data-slide="6"></span>
+                        <span class="dot" data-slide="7"></span>
+                        <span class="dot" data-slide="8"></span>
+                        <span class="dot" data-slide="9"></span>
+                    </div>
+                    <div>
+                        <select class="playback-speed" id="speedSelect" title="播放速度">
+                            <option value="0.8">0.8x 慢速</option>
+                            <option value="1" selected>1.0x 正常</option>
+                            <option value="1.2">1.2x 快速</option>
+                            <option value="1.4">1.4x 超快</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Teleprompter & Director's Panel -->
+        <div class="right-column">
+            <!-- Teleprompter -->
+            <div class="teleprompter-card">
+                <div class="card-header">
+                    <div class="card-header-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--subtitle-color);"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+                        講者同步口播稿 (VO Teleprompter)
+                    </div>
+                    <span class="badge" id="teleprompterSlideLabel">Slide 4</span>
+                </div>
+                <div class="teleprompter-view" id="teleprompterView">
+                    <!-- Script Content Dynamically Injected -->
+                </div>
+            </div>
+
+            <!-- Director's Panel -->
+            <div class="directors-card">
+                <div class="card-header">
+                    <div class="card-header-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--gold-color);"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>
+                        導演製作分鏡面 (Director's Panel)
+                    </div>
+                </div>
+                <div class="directors-content" id="directorsContent">
+                    <!-- Cues Content Dynamically Injected -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Slides Data Definition (VO Script, Visuals, SFX Cues)
+        const slidesData = {
+            4: {
+                title: "工作流轉換 - Step 1: 格式標準化",
+                visuals: "畫面展示簡報 Slide 4，右側為 glowing wafer 晶圓配圖。當說到『傳統SOP是一坨散文』時，畫面左側彈出 Word 大叉圖。隨口播依序亮起 MUST、SHOULD 關鍵字。",
+                audio: " Lo-Fi 背景音樂漸入（8% 音量）。<br> 彈出紅色大叉叉時：*(重擊音效)*。<br> 彈出規範字眼時：*(輕脆氣泡音)*。",
+                note: "口氣要充滿痛點與共鳴感，強調傳統 Word 檔案對 AI 造成的消化不良。",
+                script: [
+                    "好，現在我們已經搞清楚定義，也知道為什麼不能用整包丟的 Mega Agent 了。那對技術或非技術人員來說，我們到底要怎麼動手？",
+                    "第一步，叫做格式標準化。",
+                    "相信我，大多數人的第一步就做錯了。他們直接把給人看的 Word 檔丟給 AI，這對 Agent 來說就是一坨非結構化的文字，它在跑的時候一定會漏東漏西。在標準化裡，我們要做三件事：",
+                    "第一是參數化。你不要在 SOP 裡寫死說一定要用 normal 模式。你要把這些寫死的東西改成 mode、temperature 這種變數，讓你的 SOP 變成一個模板，每次呼叫時可以根據實際情況帶入不同的值，這才叫容錯率！",
+                    "第二是引入 RFC 2119 規範。這個原本是網路協定規格書的寫法，但我發現拿來規範 Agent 超級好用！你必須強制把規則強度想清楚：哪些是 MUST——Agent 絕對不能妥協、一定要做的硬性限制；哪些是 SHOULD——建議作法，如果 Agent 不做，必須在 Log 中明確解釋理由；哪些是 MAY——Agent 可以根據 context 自主判定。",
+                    "第三是 Markdown 結構化。用 Markdown 把 Parameters、Steps、Error Handling 這些區塊清清楚楚地切開。這不僅是給人看的，更是為了方便後面塞入 MCP 等標準接口，直接當作 Agent 的行為特徵規格書。"
+                ]
+            },
+            5: {
+                title: "工作流轉換 - Step 2: 任務拆解與連結",
+                visuals: "簡報 Slide 5 滑入，右側配 metrology sensor 光束圖。畫面中央出現一個代表大任務的藍色大方塊，隨後像細胞分裂一樣分裂為三個亮綠色小方塊。小方塊之間出現發光箭頭，帶有 { JSON } 標誌發光移動。",
+                audio: " 轉場時：*(紙張順滑翻動聲)*。<br> 巨大方塊分裂時：*(啪！分裂音效)*。<br> JSON 數據流動時：*(科技感電波聲或光束移動聲)*。",
+                note: "強調『獨立』兩個字的重要性。用手勢或重音強調 JSON 與數據串聯的透明度。",
+                script: [
+                    "標準化做好、合約立好之後，接下來就進入整個工作流的核心大腦——任務拆解與連結。",
+                    "在設計時，這個 Skill 的『防守範圍』要拆多大，是生死關鍵！防守範圍如果太大，容易樣樣通，但樣樣做得差強人意；防守範圍太小，又變成 Agent 每走一步都要回來讀 Skill、問人類，簡真像在帶幼稚園小孩。",
+                    "我們的核心原則是：以具備『獨立產出』作為單一 Skill 的防守防線，並將整個流程 Decompose 成多個獨立管道步驟（Pipeline Steps）。",
+                    "為什麼我一直強調『獨立』這兩個字？因為這奠定了後續所有的維護好處。如果分類步驟有 bug，你只需要回去修改分類那個 Skill 的 SOP Markdown 就好，後面設定機器、草擬回覆的邏輯完全不受影響，壞哪裡改哪裡！",
+                    "那麼，這些獨立的 Agent 或節點之間，要靠什麼串接呢？",
+                    "記住，絕對不是靠 LLM 之間逆天的心電感應，而是靠清清楚楚定義的 Artifacts，也就是結構化的 JSON 檔案！前一個節點的 JSON 輸出，直接完美對接下一個節點的輸入。數據流清澈透明，這就是生產級系統的精髓。"
+                ]
+            },
+            6: {
+                title: "工作流轉換 - Step 3: 雙向開發與迭代",
+                visuals: "Slide 6 滑入，右側顯示 yield graph 良率曲線圖。畫面一側出現「傳統工程師在黑板前閉門苦思 2 個月」，另一側出現「2 天快速上線，並在一週內快速跑過 50 次迭代循環」。良率曲線從極低的起點，隨著迭代次數快速向上攀升到 99%。",
+                audio: " 音樂鼓點稍微加快。<br> 良率曲線飆升時：*(連續清脆硬幣聲)*。<br> 強調內隱知識時：*(啵！)*。",
+                note: "演繹出『啊！這條規則我忘了寫進去！』的拍頭自省動作，展現真實的迭代場景。",
+                script: [
+                    "走到這裡，很多人以為自己做完架構就可以去喝咖啡了。但我跟你保證，你第一版設計出來的流程，拿去跑絕對會垮掉！",
+                    "為什麼我可以這麼篤定？開一個非常關鍵的觀念，叫做默會知識，也就是內隱知識。",
+                    "所謂默會知識，就是指那些存在於你的大腦或身體記憶中、難以用言語或圖表精確表達的潛規則。比如你在 SOP 裡寫『洗衣服』，你可能忘了寫羊毛衣不能烘、白襯衫要分開。這些潛規則你自己是不會發現的，直到 Agent 實際去跑、去出錯、把你的高檔毛衣烘到縮水穿不下時，你才會一拍腦袋說：『啊！這條規則我忘了寫進去！』",
+                    "所以，雙向開發的本質，就是跟 Agent 一起實跑、一起踩坑、一起迭代的過程。",
+                    "不要嘗試關在房間裡閉門造車兩個月，去憋一個所謂的完美 SOP。我們應該秉持 Scrum 的敏捷精神『小步快跑』：兩天之內寫出一個很粗糙但能動的 v1.0，然後一個禮拜之內狂跑 50 次測試！每次它踩到一個你沒想到的 edge case，你就回頭在 SOP 裡補上一條 MUST 或 SHOULD 防禦規則。幾輪下來，這份 SOP 就會被迭代到無比強壯，能應對 95% 以上的真實場景！"
+                ]
+            },
+            7: {
+                title: "工作流轉換 - Step 4: 整合與執行環境",
+                visuals: "Slide 7 換頁，右側配 litho system 光刻系統圖。畫面中出現一堆亂七八糟、插頭各異的轉接線，隨後這些線全部消失，被一根發光且簡潔的 USB-C 傳輸線取代，連接著 LLM 和無數個外部 Tools（資料庫、Slack、Jira）。",
+                audio: " 轉場時：*(清脆的科技轉動聲)*。<br> 彈出 USB-C 畫面時：*(喀嚓！完美插上接口的聲音)*。<br> 點擊 Approve 時：*(滑鼠清脆的點擊聲)*。",
+                note: "聲音上揚，表現出『USB-C 統一一切』的爽快感，以及對人工確認（Checkpoints）安全性的強烈信心。",
+                script: [
+                    "流程都穩定了，最後一步就是接通真實世界，給我們的 Agent 裝上手和腳，這就是整合與執行環境。",
+                    "在以前，要把 Agent 整合進公司內部，是個無比痛苦的過程。你得為 A 公司寫一套 Slack 串接，為 B 公司寫一套 Jira 串接。幸好，現在我們有了 MCP——Model Context Protocol。我最喜歡把 MCP 比喻成 AI 世界的 USB-C！",
+                    "就像 USB-C 出現之後，你不需要為滑鼠、手機、筆電準備十幾種轉接線一樣；只要支援 MCP 協定，你的 Slack 工具、資料庫工具，不管是 Claude、ChatGPT 還是 Cursor，都可以隨插即用，一次開發，終身受用。",
+                    "接通工具之後，千萬不要忘記設計最後一道安全防線：Human-in-the-Loop，也就是人工確認節點。",
+                    "任何自動化工作流不論多成熟，一定會遇到 Agent 無法判斷的極端狀況。這時如果你讓 Agent 硬著頭皮去亂猜，風險高到你根本不敢讓它上線生產環境。我們的作法是：在所有涉及大額財務、主權限變更或大量刪除等高風險決策前，強制設置 MUST 暫停點。Agent 必須停下來在 Slack 發送確認，等待人類主管親自審查並按下 Approve。",
+                    "這就叫人類掌舵，AI 划槳。既保證了極致的安全，又把所有重複、機械、無聊的體力活，100% 委派給了 AI！"
+                ]
+            },
+            8: {
+                title: "Triage 案例 - 1. 標準化與任務拆解",
+                visuals: "Slide 8 滑入，右側展示 Chamber 級微調圖。畫面左側滾動出現大量日常雜事文字（『我要權限』、『發票可否報帳』）。畫面中央展示兩個 Skill 方塊，技能 A 輸出包含 category 與 priority 的結構化 JSON，並以發光 JSON 移動到技能 B。",
+                audio: " BGM 節奏變得踏實。<br> JSON 代碼亮起時：*(電腦打字聲 & 叮！)*。<br> 澄清判定時：*(啵！)*。",
+                note: "用實例說明分類和草擬回覆雙節點的工作分工，強調 JSON 作為界面的好處。",
+                script: [
+                    "光聽剛剛那些理論，你可能會覺得有點抽象。那我們直接套用一個真實的公司場景來演練：內部請求自動分類與 triage 系統。",
+                    "想像你在一個 200 人的公司，每天都會收到成百上千條透過 Slack、Email 或表單丟進來的雜事請求。比如：『我要申請權限』、『這發票可否報帳』。這個流程很重複、很煩，但每天都要做，最適合用 Agent 解決！",
+                    "首先，Step 1：標準化。",
+                    "我們寫一份 `INTERNAL_REQUEST_TRIAGE` 的 SOP。參數化輸入 raw_text 和 employee_id。在 SOP 裡硬性規定：Agent MUST 先檢查員工身分、MUST 把請求歸入 IT、HR 或 Finance、SHOULD 判斷優先級。",
+                    "接著，Step 2：任務拆解。",
+                    "我們把這個任務攔腰折半，拆成兩個職責極度單一的 Skill：第一個叫 `request-triage`，它只專注做一件事：讀入請求，吐出一份結構化 JSON。JSON 裡寫明分類、assignee 和需不需要澄清。第二個叫 `reply-drafting`，它也只專注一件事：讀入剛剛那份 JSON，然後草擬回覆。如果 JSON 裡的 `needs_clarification` 為 true，它就 MUST 產生 2 到 3 個釐清問題。",
+                    "你看，這兩個 Skill 之間沒有任何黏滯性。今天如果你想把郵件的口吻從『嚴肅』改成『活潑』，你只需要改技能 B 的 SOP 即可，技能 A 的分類邏輯完全不用重新測試，這就是拆解的威力！"
+                ]
+            },
+            9: {
+                title: "Triage 案例 - 2. 迭代與 MCP 整合",
+                visuals: "Slide 9 換頁，右側配 fab AGV 自動搬運車圖。畫面動態演示 Log 報錯：『財務報銷被錯分到 Other』，隨後箭頭指向更新 SOP 寫入防禦規則，再次執行報錯消失。下方展示 Notion 看板與 Slack 的實體對接，以及 Slack Approve 彈跳視窗的點擊動作。",
+                audio: " 音樂走向高潮，充滿成就感。<br> Slack 通知發送時：*(Slack 專屬 knocking-brush 通知音效)*。<br> 人工核准時：*(清脆的滑鼠點擊聲 & 勝利音效)*。",
+                note: "語速稍微加快，表現出流程自動化跑通、安全落地後的輕鬆與興奮感。",
+                script: [
+                    "好，有了這兩個獨立 Skill 後，接下來就是實戰見真章的時候了。",
+                    "Step 3：雙向開發與迭代。",
+                    "剛上線時，你一定會發現很多 edge case 報錯。比如：有些財務報銷因為員工寫得太口語，被分類成了『Other』；或者推薦的 assignee 居然是已離職的員工！沒關係，這就是『默會知識』暴露的過程。我們立刻回頭修改 SOP，補上最新在職員工庫匹配規則，以及財務關鍵字映射表。再次運行，分類準確度直接從 70% 飆升並穩定在 98% 以上！",
+                    "最後，Step 4：整合與安全防禦。",
+                    "我們用 Google Sheet MCP 和 Slack MCP 伺服器，把 triage 完的 JSON 數據自動寫入 Notion 的追蹤看板，並主動發送 Slack 動態通知給推薦的負責人，告訴他有新的 ticket 進來了。",
+                    "同時，我們在最後加了一道人工安全 Checkpoint：當 category 為 Finance 且金額大於 $5000 元，或者是 IT 類別涉及管理權限變更時，Agent 會強制暫停，在管理員的 Slack 彈出確認視窗。只有管理員手動點擊 Approve，Agent 才會執行最後的寫入動作。",
+                    "透過這四步，一個原本每天耗費工程師好幾個小時、繁瑣無比的雜事分類流程，就這樣變成了一條每天在後台默默自動運作、出錯了你能在第一時間知道怎麼修、而且安全防禦 100% 點滿的 enterprise 級工作流了！"
+                ]
+            }
+        };
+
+        // UI State Variables
+        let currentSlide = 4;
+        let currentParaIdx = 0;
+        let isPlaying = false;
+        let playbackRate = 1.0;
+        let accumulatedSeconds = 0;
+
+        // Sound Synthesis Engine using Web Audio API (Zero external MP3 dependencies)
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playSynthSound(type) {
+            if (!document.getElementById('sfxToggle').checked) return;
+            initAudio();
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            const now = audioCtx.currentTime;
+
+            if (type === 'click' || type === 'pop') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1000, now);
+                osc.frequency.exponentialRampToValueAtTime(150, now + 0.08);
+                gainNode.gain.setValueAtTime(0.15, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                osc.start(now);
+                osc.stop(now + 0.08);
+            } 
+            else if (type === 'ding' || type === 'chime') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, now);
+                gainNode.gain.setValueAtTime(0.2, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                
+                const osc2 = audioCtx.createOscillator();
+                const gainNode2 = audioCtx.createGain();
+                osc2.type = 'sine';
+                osc2.frequency.setValueAtTime(1174.66, now);
+                osc2.connect(gainNode2);
+                gainNode2.connect(audioCtx.destination);
+                gainNode2.gain.setValueAtTime(0.1, now);
+                gainNode2.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+                osc.start(now);
+                osc.stop(now + 0.4);
+                osc2.start(now);
+                osc2.stop(now + 0.3);
+            } 
+            else if (type === 'warning' || type === 'alert') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(554.37, now);
+                osc.frequency.setValueAtTime(659.25, now + 0.12);
+                gainNode.gain.setValueAtTime(0.15, now);
+                gainNode.gain.setValueAtTime(0.15, now + 0.12);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.28);
+                
+                osc.start(now);
+                osc.stop(now + 0.28);
+            }
+            else if (type === 'slide_transition') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(200, now);
+                osc.frequency.exponentialRampToValueAtTime(600, now + 0.2);
+                gainNode.gain.setValueAtTime(0.1, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                
+                osc.start(now);
+                osc.stop(now + 0.2);
+            }
+        }
+
+        // DOM elements
+        const slideFrames = {};
+        const startSlide = 4;
+        const endSlide = 9;
+        
+        for(let i = startSlide; i <= endSlide; i++) {
+            slideFrames[i] = document.getElementById(`slideFrame-${i}`);
+        }
+        
+        const playBtn = document.getElementById('playBtn');
+        const playIcon = document.getElementById('playIcon');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const speedSelect = document.getElementById('speedSelect');
+        const slideDots = document.getElementById('slideDots');
+        const currentTimeEl = document.getElementById('currentTime');
+        const totalTimeEl = document.getElementById('totalTime');
+        const progressBar = document.getElementById('progressBar');
+        const progressTrack = document.getElementById('progressTrack');
+        const teleprompterView = document.getElementById('teleprompterView');
+        const teleprompterSlideLabel = document.getElementById('teleprompterSlideLabel');
+        const directorsContent = document.getElementById('directorsContent');
+        const toastContainer = document.getElementById('toastContainer');
+        
+        // Settings elements
+        const ttsToggle = document.getElementById('ttsToggle');
+        const ttsEngineSelect = document.getElementById('ttsEngineSelect');
+        const gptSettingsPanel = document.getElementById('gptSettingsPanel');
+        const gptEndpoint = document.getElementById('gptEndpoint');
+        const gptTextLang = document.getElementById('gptTextLang');
+        const gptReferWav = document.getElementById('gptReferWav');
+        const gptPromptText = document.getElementById('gptPromptText');
+        const gptPromptLang = document.getElementById('gptPromptLang');
+
+        // Toggle collapsible settings panel based on select value
+        ttsEngineSelect.addEventListener('change', (e) => {
+            if(e.target.value === 'gpt_sovits') {
+                gptSettingsPanel.style.display = 'grid';
+                triggerToast("💡 已切換至地端 GPT-SoVITS 引擎，請在展開的面板中確認您的 API 參數！");
+            } else {
+                gptSettingsPanel.style.display = 'none';
+                triggerToast("💡 已還原至網頁內建語音引擎。");
+            }
+            if(isPlaying) {
+                pausePresentation();
+            }
+        });
+
+        // Toast Trigger
+        function triggerToast(text, isSfx = false, sfxType = '') {
+            const toast = document.createElement('div');
+            toast.className = `toast-notif ${isSfx ? 'sfx' : ''}`;
+            toast.innerHTML = isSfx ? `🔊 SFX 音效: ${text}` : `🎬 畫面分鏡: ${text}`;
+            toastContainer.appendChild(toast);
+            
+            if(isSfx && sfxType) {
+                playSynthSound(sfxType);
+            }
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // Format Seconds to MM:SS
+        function formatTime(secs) {
+            const m = Math.floor(secs / 60);
+            const s = Math.floor(secs % 60);
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        // Render Teleprompter Script & Director Cues for a slide
+        function renderSlideScriptAndCues(sNum) {
+            const data = slidesData[sNum];
+            if(!data) return;
+
+            // 1. Script
+            teleprompterView.innerHTML = '';
+            data.script.forEach((para, idx) => {
+                const p = document.createElement('p');
+                p.className = `script-para`;
+                p.id = `para-${sNum}-${idx}`;
+                p.textContent = para;
+                
+                p.addEventListener('click', () => {
+                    stopAllAudio();
+                    currentParaIdx = idx;
+                    highlightParagraph(sNum, idx);
+                    if (isPlaying) {
+                        speakCurrentParagraph();
+                    }
+                });
+
+                teleprompterView.appendChild(p);
+            });
+            teleprompterSlideLabel.textContent = `Slide ${sNum}`;
+            teleprompterView.scrollTop = 0;
+
+            // 2. Cues
+            directorsContent.innerHTML = `
+                <div class="director-row">
+                    <span class="director-row-label">📽️ 畫面分鏡設計 (Visuals)</span>
+                    <span class="director-row-val">${data.visuals}</span>
+                </div>
+                <div class="director-row">
+                    <span class="director-row-label">🎵 音效與音樂 (Audio Cues)</span>
+                    <span class="director-row-val">${data.audio}</span>
+                </div>
+                <div class="director-row">
+                    <span class="director-row-label">💡 導演講述心法 (Director's Note)</span>
+                    <span class="director-row-val">${data.note}</span>
+                </div>
+            `;
+        }
+
+        // Highlight Paragraph
+        function highlightParagraph(sNum, pIdx) {
+            const data = slidesData[sNum];
+            if (!data) return;
+
+            data.script.forEach((_, idx) => {
+                const paraEl = document.getElementById(`para-${sNum}-${idx}`);
+                if (paraEl) {
+                    if (idx === pIdx) {
+                        paraEl.classList.add('active');
+                        const offset = paraEl.offsetTop - teleprompterView.offsetTop - 50;
+                        teleprompterView.scrollTop = offset;
+                    } else {
+                        paraEl.classList.remove('active');
+                    }
+                }
+            });
+
+            // Trigger specific cinematic sound effect cues
+            if (pIdx > 0) {
+                if (sNum === 4 && pIdx === 2) triggerToast("Word 散文大叉叉重擊音 (砰！)", true, 'warning');
+                if (sNum === 4 && pIdx === 4) triggerToast("參數強度規則氣泡音 (啵！)", true, 'click');
+                if (sNum === 5 && pIdx === 4) triggerToast("JSON 管道傳遞數據電波音 (嗶！)", true, 'click');
+                if (sNum === 6 && pIdx === 2) triggerToast("良率指數狂飆上升金幣音 (叮！)", true, 'ding');
+                if (sNum === 7 && pIdx === 2) triggerToast("USB-C 插入電腦介面卡榫音 (喀嚓！)", true, 'click');
+                if (sNum === 7 && pIdx === 4) triggerToast("Human-in-the-Loop 人工審批通知音 (叮咚！)", true, 'warning');
+                if (sNum === 8 && pIdx === 5) triggerToast("JSON 中介合約傳遞音 (叮！)", true, 'click');
+                if (sNum === 9 && pIdx === 2) triggerToast("良率收斂成功升級音效 (啵！)", true, 'ding');
+                if (sNum === 9 && pIdx === 4) triggerToast("Slack 行動通知發送音效 (叮！)", true, 'click');
+                if (sNum === 9 && pIdx === 5) triggerToast("管理員安全審核批准通過 (勝利！)", true, 'ding');
+            }
+        }
+
+        // Global audio objects
+        let currentUtterance = null;
+        let gptAudioNode = null;
+        let fallbackTimer = null;
+
+        function stopAllAudio() {
+            window.speechSynthesis.cancel();
+            if (gptAudioNode) {
+                gptAudioNode.pause();
+                gptAudioNode = null;
+            }
+            if (fallbackTimer) {
+                clearInterval(fallbackTimer);
+                fallbackTimer = null;
+            }
+        }
+
+        function speakNativeTTS(textToSpeak) {
+            currentUtterance = new SpeechSynthesisUtterance(textToSpeak);
+            currentUtterance.lang = 'zh-TW';
+            currentUtterance.rate = playbackRate;
+
+            currentUtterance.onstart = () => {
+                highlightParagraph(currentSlide, currentParaIdx);
+                updateProgressUI();
+            };
+
+            currentUtterance.onend = () => {
+                if (isPlaying) {
+                    advanceParagraph();
+                }
+            };
+
+            currentUtterance.onerror = (e) => {
+                console.error("Speech Synthesis Error:", e);
+                if (isPlaying && e.error !== 'interrupted') {
+                    setTimeout(advanceParagraph, 3000 / playbackRate);
+                }
+            };
+
+            window.speechSynthesis.speak(currentUtterance);
+        }
+
+        function speakCurrentParagraph() {
+            if (!isPlaying) return;
+
+            stopAllAudio(); // Stop any currently active speech
+
+            const data = slidesData[currentSlide];
+            if (!data) return;
+
+            const textToSpeak = data.script[currentParaIdx];
+            
+            // 1. If TTS is disabled, fall back to pure time simulation
+            if (!ttsToggle.checked) {
+                runSimulationTimer(textToSpeak);
+                return;
+            }
+
+            // 2. Local High-Quality MP3 files (Edge-TTS synthesized)
+            if (ttsEngineSelect.value === 'local_mp3') {
+                const filename = `assets/voice_slide_${currentSlide}_${currentParaIdx}.mp3`;
+                console.log("Playing local high-quality MP3:", filename);
+
+                gptAudioNode = new Audio(filename);
+                gptAudioNode.playbackRate = playbackRate;
+
+                gptAudioNode.onplay = () => {
+                    highlightParagraph(currentSlide, currentParaIdx);
+                    updateProgressUI();
+                };
+
+                gptAudioNode.onended = () => {
+                    if (isPlaying) {
+                        advanceParagraph();
+                    }
+                };
+
+                gptAudioNode.onerror = (e) => {
+                    console.warn(`Local MP3 not found: ${filename}, falling back to Native TTS.`, e);
+                    speakNativeTTS(textToSpeak);
+                };
+
+                gptAudioNode.play().catch(e => {
+                    console.error("Local MP3 play failed, falling back to Native TTS:", e);
+                    speakNativeTTS(textToSpeak);
+                });
+            }
+            // 3. Local GPT-SoVITS Integration (Route B)
+            else if (ttsEngineSelect.value === 'gpt_sovits') {
+                const endpoint = gptEndpoint.value.trim() || "http://127.0.0.1:9880";
+                const lang = gptTextLang.value.trim() || "zh";
+                const refWav = gptReferWav.value.trim();
+                const promptTxt = gptPromptText.value.trim();
+                const promptLg = gptPromptLang.value.trim() || "zh";
+
+                // Build query URL
+                let queryUrl = `${endpoint}/?text=${encodeURIComponent(textToSpeak)}&text_language=${lang}`;
+                
+                // Advanced mode: If reference Wav path is specified, include it
+                if (refWav) {
+                    queryUrl += `&refer_wav_path=${encodeURIComponent(refWav)}&prompt_text=${encodeURIComponent(promptTxt)}&prompt_language=${promptLg}`;
+                }
+
+                console.log("Calling local GPT-SoVITS API:", queryUrl);
+
+                gptAudioNode = new Audio(queryUrl);
+                gptAudioNode.playbackRate = playbackRate;
+
+                gptAudioNode.onplay = () => {
+                    highlightParagraph(currentSlide, currentParaIdx);
+                    updateProgressUI();
+                };
+
+                gptAudioNode.onended = () => {
+                    if (isPlaying) {
+                        advanceParagraph();
+                    }
+                };
+
+                gptAudioNode.onerror = (e) => {
+                    console.error("Local GPT-SoVITS connection failed, falling back to Native TTS:", e);
+                    triggerToast("⚠️ 提示：無法連線至本地 GPT-SoVITS API。自動切換為內建語音朗讀...", false);
+                    speakNativeTTS(textToSpeak);
+                };
+
+                gptAudioNode.play().catch(e => {
+                    console.error("Play failed:", e);
+                });
+            } 
+            // 4. Browser Native Web Speech API TTS
+            else {
+                speakNativeTTS(textToSpeak);
+            }
+        }
+
+        // Fallback simulation timer
+        function runSimulationTimer(text) {
+            const estimatedMs = (text.length / 5.5) * 1000 / playbackRate;
+            let steps = 20;
+            let stepMs = estimatedMs / steps;
+            let stepCount = 0;
+            
+            highlightParagraph(currentSlide, currentParaIdx);
+            updateProgressUI();
+
+            fallbackTimer = setInterval(() => {
+                if (!isPlaying) {
+                    clearInterval(fallbackTimer);
+                    return;
+                }
+                stepCount++;
+                if (stepCount >= steps) {
+                    clearInterval(fallbackTimer);
+                    advanceParagraph();
+                }
+            }, stepMs);
+        }
+
+        function advanceParagraph() {
+            const data = slidesData[currentSlide];
+            if (!data) return;
+
+            if (currentParaIdx < data.script.length - 1) {
+                currentParaIdx++;
+                speakCurrentParagraph();
+            } else {
+                // Current slide finished! Advance to next slide
+                if (currentSlide < endSlide) {
+                    playSynthSound('slide_transition');
+                    switchSlide(currentSlide + 1);
+                    currentParaIdx = 0;
+                    speakCurrentParagraph();
+                } else {
+                    // Entire presentation finished!
+                    pausePresentation();
+                    currentSlide = startSlide;
+                    currentParaIdx = 0;
+                    switchSlide(startSlide);
+                    triggerToast("🎉 簡報口播語音播放結束！已為您重設回起點。", true, 'ding');
+                }
+            }
+        }
+
+        // Switch Slide
+        function switchSlide(sNum) {
+            if(sNum < startSlide || sNum > endSlide) return;
+            
+            for(let i = startSlide; i <= endSlide; i++) {
+                slideFrames[i].classList.remove('active');
+            }
+            slideFrames[sNum].classList.add('active');
+            currentSlide = sNum;
+
+            // Calculate accumulated seconds prior to this slide for progress UI
+            accumulatedSeconds = 0;
+            for(let i = startSlide; i < sNum; i++) {
+                let chars = 0;
+                slidesData[i].script.forEach(p => chars += p.length);
+                accumulatedSeconds += (chars / 5.5);
+            }
+
+            renderSlideScriptAndCues(sNum);
+
+            // Update Dots
+            document.querySelectorAll('.dot').forEach(dot => {
+                if(parseInt(dot.getAttribute('data-slide')) === sNum) {
+                    dot.classList.add('active');
+                } else {
+                    dot.classList.remove('active');
+                }
+            });
+
+            highlightParagraph(sNum, currentParaIdx);
+            updateProgressUI();
+            
+            triggerToast(`已自動載入第 ${sNum} 頁: ${slidesData[sNum].title}`, false);
+        }
+
+        // Calculate Total Presentation Estimated Seconds
+        function getEstimatedTotalSeconds() {
+            let total = 0;
+            for(let i = startSlide; i <= endSlide; i++) {
+                let chars = 0;
+                slidesData[i].script.forEach(p => chars += p.length);
+                total += (chars / 5.5);
+            }
+            return total;
+        }
+
+        const totalEstSeconds = getEstimatedTotalSeconds();
+        totalTimeEl.textContent = formatTime(totalEstSeconds);
+
+        function updateProgressUI() {
+            const data = slidesData[currentSlide];
+            if (!data) return;
+
+            let slideOffsetChars = 0;
+            for(let i = 0; i < currentParaIdx; i++) {
+                slideOffsetChars += data.script[i].length;
+            }
+            
+            const currentOffsetSec = slideOffsetChars / 5.5;
+            const currentTotalEstSec = accumulatedSeconds + currentOffsetSec;
+            
+            currentTimeEl.textContent = formatTime(currentTotalEstSec);
+            const percent = Math.min((currentTotalEstSec / totalEstSeconds) * 100, 100);
+            progressBar.style.width = `${percent}%`;
+        }
+
+        function playPresentation() {
+            initAudio();
+            isPlaying = true;
+            playIcon.innerHTML = `<rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect>`;
+            
+            const modeName = ttsEngineSelect.value === 'gpt_sovits' ? "GPT-SoVITS 地端克隆語音" : "內建語音合成";
+            triggerToast(`🔊 啟動影片播放與 AI 導讀 (${modeName})...`, false);
+            speakCurrentParagraph();
+        }
+
+        function pausePresentation() {
+            isPlaying = false;
+            playIcon.innerHTML = `<polygon points="5 3 19 12 5 21 5 3"></polygon>`;
+            stopAllAudio();
+            triggerToast("⏸️ 暫停影片模擬播放", false);
+        }
+
+        // Toggle Play Pause
+        playBtn.addEventListener('click', () => {
+            if(isPlaying) {
+                pausePresentation();
+            } else {
+                playPresentation();
+            }
+        });
+
+        // Prev/Next Buttons
+        prevBtn.addEventListener('click', () => {
+            stopAllAudio();
+            currentParaIdx = 0;
+            if(currentSlide > startSlide) {
+                switchSlide(currentSlide - 1);
+            }
+            if (isPlaying) speakCurrentParagraph();
+        });
+
+        nextBtn.addEventListener('click', () => {
+            stopAllAudio();
+            currentParaIdx = 0;
+            if(currentSlide < endSlide) {
+                switchSlide(currentSlide + 1);
+            }
+            if (isPlaying) speakCurrentParagraph();
+        });
+
+        // Speed Select
+        speedSelect.addEventListener('change', (e) => {
+            playbackRate = parseFloat(e.target.value);
+            triggerToast(`語音朗讀速度調整為 ${playbackRate}x`, false);
+            if (isPlaying) {
+                speakCurrentParagraph();
+            }
+        });
+
+        // Dots Navigation
+        document.querySelectorAll('.dot').forEach(dot => {
+            dot.addEventListener('click', (e) => {
+                stopAllAudio();
+                const target = parseInt(e.target.getAttribute('data-slide'));
+                currentParaIdx = 0;
+                switchSlide(target);
+                if (isPlaying) speakCurrentParagraph();
+            });
+        });
+
+        // Progress track scrubbing
+        progressTrack.addEventListener('click', (e) => {
+            stopAllAudio();
+            const rect = progressTrack.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const percent = clickX / rect.width;
+            
+            const targetTotalSec = percent * totalEstSeconds;
+            
+            let accum = 0;
+            let targetSlide = startSlide;
+            for(let i = startSlide; i <= endSlide; i++) {
+                let chars = 0;
+                slidesData[i].script.forEach(p => chars += p.length);
+                const dur = chars / 5.5;
+                if(targetTotalSec <= accum + dur) {
+                    targetSlide = i;
+                    break;
+                }
+                accum += dur;
+            }
+            
+            currentSlide = targetSlide;
+            currentParaIdx = 0;
+            switchSlide(targetSlide);
+            
+            // Estimate paragraph index based on offset
+            const offsetInSlide = targetTotalSec - accum;
+            const data = slidesData[targetSlide];
+            let offsetAccum = 0;
+            for(let i = 0; i < data.script.length; i++) {
+                const paraDur = data.script[i].length / 5.5;
+                if(offsetInSlide <= offsetAccum + paraDur) {
+                    currentParaIdx = i;
+                    break;
+                }
+                offsetAccum += paraDur;
+            }
+            
+            highlightParagraph(targetSlide, currentParaIdx);
+            updateProgressUI();
+            
+            if (isPlaying) {
+                speakCurrentParagraph();
+            }
+        });
+
+        // Initialize Stage
+        switchSlide(4);
+
+        // Cancel all audio when window is closed
+        window.addEventListener('beforeunload', () => {
+            stopAllAudio();
+        });
+
+    </script>
+</body>
+</html>
