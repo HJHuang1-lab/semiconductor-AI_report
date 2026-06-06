@@ -1,20 +1,24 @@
 {
   "main": {
-    "id": "8e4c581d12d08411",
+    "id": "63b8d021fd01480a",
     "type": "split",
     "children": [
       {
-        "id": "068e2a5f6a6c02c2",
+        "id": "b8a80b6361894132",
         "type": "tabs",
         "children": [
           {
-            "id": "5d93fb6f2721c751",
+            "id": "afbd7ce2dc64e085",
             "type": "leaf",
             "state": {
-              "type": "graph",
-              "state": {},
-              "icon": "lucide-git-fork",
-              "title": "關聯圖檢視"
+              "type": "markdown",
+              "state": {
+                "file": "2026-06-06-Semiconductor-AI-Report.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "2026-06-06-Semiconductor-AI-Report"
             }
           }
         ]
@@ -23,15 +27,15 @@
     "direction": "vertical"
   },
   "left": {
-    "id": "5f81893fbb2a837d",
+    "id": "c7ed820bcadc99aa",
     "type": "split",
     "children": [
       {
-        "id": "b0fcec1a898ee5ff",
+        "id": "92525428bf9c4840",
         "type": "tabs",
         "children": [
           {
-            "id": "dd22f2650fd45b5f",
+            "id": "ccafb5565fe14533",
             "type": "leaf",
             "state": {
               "type": "file-explorer",
@@ -44,7 +48,7 @@
             }
           },
           {
-            "id": "558a158b088b592f",
+            "id": "981a245902c5ee6a",
             "type": "leaf",
             "state": {
               "type": "search",
@@ -61,7 +65,7 @@
             }
           },
           {
-            "id": "34decd8409e8a526",
+            "id": "e141055a4cf3948f",
             "type": "leaf",
             "state": {
               "type": "bookmarks",
@@ -70,27 +74,27 @@
               "title": "書籤"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "horizontal",
     "width": 300
   },
   "right": {
-    "id": "ad99f91554f87db7",
+    "id": "a2dd4936d7841a4d",
     "type": "split",
     "children": [
       {
-        "id": "4a799f3869078ca0",
+        "id": "36d587894a43e3e2",
         "type": "tabs",
         "children": [
           {
-            "id": "12e6ac6f8387bac5",
+            "id": "95b1714c8a53da6c",
             "type": "leaf",
             "state": {
               "type": "backlink",
               "state": {
+                "file": "2026-06-06-Semiconductor-AI-Report.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -100,24 +104,25 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "反向連結"
+              "title": "2026-06-06-Semiconductor-AI-Report 的反向連結"
             }
           },
           {
-            "id": "173ce492f0a2de00",
+            "id": "f008efe680f76175",
             "type": "leaf",
             "state": {
               "type": "outgoing-link",
               "state": {
+                "file": "2026-06-06-Semiconductor-AI-Report.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "對外連結"
+              "title": "2026-06-06-Semiconductor-AI-Report 的對外連結"
             }
           },
           {
-            "id": "23e1bbf9d56a4a99",
+            "id": "20e082946f572d8e",
             "type": "leaf",
             "state": {
               "type": "tag",
@@ -132,7 +137,7 @@
             }
           },
           {
-            "id": "697eea1bbc18bb07",
+            "id": "3e22a6ec3fa90fe8",
             "type": "leaf",
             "state": {
               "type": "all-properties",
@@ -146,17 +151,18 @@
             }
           },
           {
-            "id": "7b2ecea6bbfbac7f",
+            "id": "4f2a93a54c9be5a0",
             "type": "leaf",
             "state": {
               "type": "outline",
               "state": {
+                "file": "2026-06-06-Semiconductor-AI-Report.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "大綱"
+              "title": "2026-06-06-Semiconductor-AI-Report 的大綱"
             }
           }
         ]
@@ -177,17 +183,6 @@
       "bases:建立新的 base": false
     }
   },
-  "active": "5d93fb6f2721c751",
-  "lastOpenFiles": [
-    "daily_notes/2026-05-31-Semiconductor-AI-Report.md",
-    "未命名.canvas",
-    "語音_260531_153027.wav",
-    "未命名.md",
-    "未命名.base",
-    "未命名",
-    "daily_notes/2026-06-01-Semiconductor-AI-Report.md",
-    "2026-05-31.md",
-    "README.md",
-    "daily_notes"
-  ]
+  "active": "afbd7ce2dc64e085",
+  "lastOpenFiles": []
 }
