@@ -302,38 +302,10 @@ img_yield_default = os.path.join(assets_dir, "yield_stack.png")
 
 def get_or_generate_slide_image(s_data, default_img_path):
     """
-    Attempts to dynamically generate a custom illustration using Imagen 4.0 based on the slide's theme.
-    Falls back to the high-quality preset image if dynamic generation fails (e.g. Free Tier developer key).
+    Directly returns the high-quality preset image to avoid Imagen 4.0 API costs.
     """
-    image_prompt = s_data.get("image_prompt")
-    if not image_prompt:
-        return default_img_path
-        
-    temp_img_path = f"assets/dynamic_temp_{os.path.basename(default_img_path)}"
-    
-    try:
-        print(f"嘗試為主題『{s_data.get('title')}』動態生成 AI 插圖...")
-        print(f"提示詞: {image_prompt}")
-        
-        result = client.models.generate_images(
-            model='imagen-4.0-generate-001',
-            prompt=image_prompt,
-            config=dict(
-                number_of_images=1,
-                output_mime_type='image/png',
-                aspect_ratio='4:3'
-            )
-        )
-        for idx, generated_image in enumerate(result.generated_images):
-            os.makedirs("assets", exist_ok=True)
-            generated_image.image.save(temp_img_path)
-            print(f"✅ 動態 AI 插圖生成成功！儲存於: {temp_img_path}")
-            return temp_img_path
-            
-    except Exception as e:
-        print(f"⚠️ 動態 AI 插圖生成未啟用 (API Key 權限限制/免費帳號): {e}")
-        print(f"👉 自動啟動安全備份方案，使用高質感預設圖片: {default_img_path}")
-        return default_img_path
+    print(f"👉 使用高質感預設圖片 (已停用 Imagen API 以節省開支): {default_img_path}")
+    return default_img_path
 
 def apply_background(slide, color):
     """Draws a full-slide rectangle to apply solid background color without standard borders."""
