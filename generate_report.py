@@ -28,7 +28,7 @@ else:
 # Extract keys
 gemini_key = os.getenv("GEMINI_API_KEY")
 gmail_user = os.getenv("GMAIL_USER") or "a5170171@gmail.com"
-gmail_password = os.getenv("GMAIL_APP_PASSWORD") or "ytts erdx vonw vedw"
+gmail_password = os.getenv("GMAIL_APP_PASSWORD")
 recipient_email = "hjhuang1@winbond.com"
 
 if not gemini_key:
@@ -133,7 +133,7 @@ try:
                 "temperature": 0.1,
                 "response_format": {"type": "json_object"}
             }
-            resp = requests.post("http://127.0.0.1:1234/v1/chat/completions", json=payload, timeout=15)
+            resp = requests.post("http://127.0.0.1:1234/v1/chat/completions", json=payload, timeout=300)
             resp.raise_for_status()
             eval_res_text = resp.json()['choices'][0]['message']['content']
             print("    [Eval] 成功連線 LM Studio (Gemma-4) 進行評分！")
@@ -167,7 +167,7 @@ try:
     current_attempt = 0
     passed = False
     data = None
-    current_json_prompt = base_json_prompt.format(analysis_text=analysis_text)
+    current_json_prompt = base_json_prompt.replace("{analysis_text}", analysis_text)
     
     while current_attempt <= max_retries and not passed:
         print(f"\n  ▶ 正在生成 JSON (嘗試次數 {current_attempt + 1}/{max_retries + 1})...")
@@ -198,7 +198,7 @@ try:
             print(f"⚠️ 品質未達標 (低於 90)，原因：{critique}")
             if current_attempt < max_retries:
                 print("    啟動 Rework 自動重寫機制...")
-                current_json_prompt = base_json_prompt.format(analysis_text=analysis_text) + f"\n\n【退件修改指示 (Rework Critique)】：\n上次生成的草稿被品管退回，得分 {score}/100。審查意見如下：\n{critique}\n請根據此意見嚴格修正內容，確保數值準確、無空洞行銷用語，並強化實體綁定！"
+                current_json_prompt = base_json_prompt.replace("{analysis_text}", analysis_text) + f"\n\n【退件修改指示 (Rework Critique)】：\n上次生成的草稿被品管退回，得分 {score}/100。審查意見如下：\n{critique}\n請根據此意見嚴格修正內容，確保數值準確、無空洞行銷用語，並強化實體綁定！"
             else:
                 print("❌ 已達最大重寫次數，強制放行目前版本。")
                 data = json.loads(content_text)
@@ -910,6 +910,17 @@ msg['To'] = recipient_email
 msg['Cc'] = gmail_user
 msg['Subject'] = f"【每日定時報告】AI Agent 與半導體製程結合：良率提升深度解讀 ({datetime.now().strftime('%Y-%m-%d')})"
 
+# Build HTML for the slides to make the email comprehensive
+slides_html = ""
+for idx, slide in enumerate(data.get("slides", [])):
+    slides_html += f"<h3>📍 {idx+1}. {slide.get('title')}</h3>\n"
+    slides_html += f"<p><strong>{slide.get('subtitle')}</strong></p>\n"
+    slides_html += "<ul>\n"
+    cards = slide.get("cards", [])
+    for card in cards:
+        slides_html += f"  <li style='margin-bottom: 10px;'><strong>{card.get('title')}</strong>: {card.get('content')}</li>\n"
+    slides_html += "</ul>\n"
+
 # HTML body structure
 html_content = f"""
 <html>
@@ -973,7 +984,10 @@ html_content = f"""
             本信件為 AI 系統每日早上 9:00 定時執行的全球最新技術分析報告。隨信附上專為內部分享設計的「深色晶片科技風」PPT 簡報檔案。
         </div>
         
-        {data["email_summary"]}
+        <div class="accent-box" style="margin-top: 30px; background-color: #f1f5f9; border-left: 4px solid #64748b; padding: 15px; border-right: none;">
+            <h2 style="border-bottom: none; margin-bottom: 10px; color: #334155;">🧠 簡報內容深度解讀</h2>
+            {slides_html}
+        </div>
         
         <div class="footer">
             此郵件由自動化 AI Agent 系統生成發送。環境變數已由本地與雲端 Secrets 託管安全讀取。<br>
