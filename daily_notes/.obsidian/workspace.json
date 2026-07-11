@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "2026-06-06-Semiconductor-AI-Report.md",
+                "file": "2026-06-09-Semiconductor-AI-Report.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "2026-06-06-Semiconductor-AI-Report"
+              "title": "2026-06-09-Semiconductor-AI-Report"
             }
           }
         ]
@@ -184,5 +184,7 @@
     }
   },
   "active": "afbd7ce2dc64e085",
-  "lastOpenFiles": []
+  "lastOpenFiles": [
+    "2026-06-06-Semiconductor-AI-Report.md"
+  ]
 }
