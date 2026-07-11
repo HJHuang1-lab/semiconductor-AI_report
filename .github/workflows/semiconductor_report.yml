@@ -1,9 +1,8 @@
 name: 🤖 每日早上 7:13 半導體 AI Agent 良率分析報告發送
 
 on:
-  schedule:
-    # 每天早上 7:13 台灣時間 (07:13 UTC+8 = 22:13 UTC)
-    - cron: '13 23 * * *'
+  # schedule:
+  #   - cron: '13 23 * * *' # 暫停雲端排程，已轉移至本地 Windows Task Scheduler
   workflow_dispatch:
     # 允許手動在 GitHub 網頁上按按鈕立即執行
 
